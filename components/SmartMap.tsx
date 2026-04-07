@@ -4,28 +4,7 @@ import { useEffect, useRef } from 'react';
 import type { Complaint, AnalysisResult } from '@/types';
 import { CATEGORY_COLORS, FACILITY_INFO } from '@/types';
 
-declare global {
-  interface Window {
-    naver: {
-      maps: {
-        Map: new (el: HTMLElement, opts: object) => NaverMap;
-        LatLng: new (lat: number, lng: number) => NaverLatLng;
-        Marker: new (opts: object) => NaverMarker;
-        InfoWindow: new (opts: object) => NaverInfoWindow;
-        Event: { addListener: (target: unknown, event: string, handler: () => void) => void };
-        visualization: {
-          HeatMap: new (opts: object) => NaverHeatMap;
-          SpectrumStyle: { RAINBOW: unknown };
-        };
-      };
-    };
-  }
-}
-interface NaverMap { setCenter: (latlng: NaverLatLng) => void; getZoom: () => number; }
-interface NaverLatLng { lat: () => number; lng: () => number; }
-interface NaverMarker { setMap: (map: NaverMap | null) => void; getElement?: () => HTMLElement; }
-interface NaverInfoWindow { open: (map: NaverMap, marker: NaverMarker) => void; close: () => void; }
-interface NaverHeatMap { setMap: (map: NaverMap | null) => void; setData: (data: unknown[]) => void; }
+import '@/types/naver-maps';
 
 interface Props {
   complaints: Complaint[];
@@ -38,15 +17,15 @@ interface Props {
 
 export default function SmartMap({ complaints, analysis, showHeatmap, showRecommend, selectedArea, onAreaSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<NaverMap | null>(null);
-  const markersRef = useRef<NaverMarker[]>([]);
-  const recMarkersRef = useRef<NaverMarker[]>([]);
-  const heatmapRef = useRef<NaverHeatMap | null>(null);
-  const infoWindowRef = useRef<NaverInfoWindow | null>(null);
+  const mapRef = useRef<NaverMapInstance | null>(null);
+  const markersRef = useRef<NaverMarkerInstance[]>([]);
+  const recMarkersRef = useRef<NaverMarkerInstance[]>([]);
+  const heatmapRef = useRef<NaverHeatMapInstance | null>(null);
+  const infoWindowRef = useRef<NaverInfoWindowInstance | null>(null);
 
   const GONGJU_CENTER = { lat: 36.4547, lng: 127.1197 };
 
-  function clearMarkers(arr: NaverMarker[]) {
+  function clearMarkers(arr: NaverMarkerInstance[]) {
     arr.forEach((m) => m.setMap(null));
     arr.length = 0;
   }
@@ -69,7 +48,7 @@ export default function SmartMap({ complaints, analysis, showHeatmap, showRecomm
         map: mapRef.current!,
         icon: {
           content: `<div style="width:12px;height:12px;border-radius:50%;background:${CATEGORY_COLORS[c.category]};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.5);"></div>`,
-          anchor: new (window.naver.maps as unknown as { Point: new (x: number, y: number) => unknown }).Point(6, 6),
+          anchor: new window.naver.maps.Point(6, 6),
         },
       });
       const iw = new window.naver.maps.InfoWindow({
@@ -105,7 +84,7 @@ export default function SmartMap({ complaints, analysis, showHeatmap, showRecomm
           content: `<div style="background:${color};color:white;padding:4px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4);border:2px solid white;cursor:pointer;">
             ${info.icon} ${a.recommended_facility} (${a.risk_score}점)
           </div>`,
-          anchor: new (window.naver.maps as unknown as { Point: new (x: number, y: number) => unknown }).Point(50, 16),
+          anchor: new window.naver.maps.Point(50, 16),
         },
         zIndex: 10,
       });

@@ -7,7 +7,7 @@ import { ArrowLeft, Camera, MapPin, Send, AlertCircle, CheckCircle2 } from 'luci
 import type { ComplaintCategory } from '@/types';
 import { CATEGORY_COLORS } from '@/types';
 
-declare global { interface Window { naver: { maps: { Map: new (el: HTMLElement, opts: object) => unknown; LatLng: new (lat: number, lng: number) => unknown; Marker: new (opts: object) => unknown; Event: { addListener: (t: unknown, e: string, h: (e: { coord: { lat: () => number; lng: () => number } }) => void) => void }; } }; } }
+import '@/types/naver-maps';
 
 const CATEGORIES: ComplaintCategory[] = ['쓰레기 무단투기', '불법 주정차', '시설 파손', '범죄 위험', '악취', '기타'];
 
@@ -23,8 +23,8 @@ const CATEGORY_DESC: Record<ComplaintCategory, string> = {
 export default function ReportPage() {
   const router = useRouter();
   const mapRef = useRef<HTMLDivElement>(null);
-  const markerRef = useRef<unknown>(null);
-  const mapInstance = useRef<unknown>(null);
+  const markerRef = useRef<NaverMarkerInstance | null>(null);
+  const mapInstance = useRef<NaverMapInstance | null>(null);
 
   const [category, setCategory] = useState<ComplaintCategory | ''>('');
   const [description, setDescription] = useState('');
@@ -53,13 +53,13 @@ export default function ReportPage() {
       setLat(clickedLat);
       setLng(clickedLng);
 
-      if (markerRef.current) (markerRef.current as { setMap: (m: null) => void }).setMap(null);
+      if (markerRef.current) markerRef.current.setMap(null);
       markerRef.current = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(clickedLat, clickedLng),
         map,
         icon: {
           content: '<div style="background:#3b82f6;color:white;padding:6px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4);">📍 선택된 위치</div>',
-          anchor: { x: 50, y: 20 } as unknown as never,
+          anchor: new window.naver.maps.Point(50, 20),
         },
       });
     });
@@ -68,13 +68,13 @@ export default function ReportPage() {
       navigator.geolocation.getCurrentPosition((pos) => {
         const { latitude, longitude } = pos.coords;
         setLat(latitude); setLng(longitude);
-        (map as { setCenter: (l: unknown) => void }).setCenter(new window.naver.maps.LatLng(latitude, longitude));
+        mapInstance.current?.setCenter(new window.naver.maps.LatLng(latitude, longitude));
         markerRef.current = new window.naver.maps.Marker({
           position: new window.naver.maps.LatLng(latitude, longitude),
           map,
           icon: {
             content: '<div style="background:#3b82f6;color:white;padding:6px 10px;border-radius:20px;font-size:11px;font-weight:700;">📍 내 위치</div>',
-            anchor: { x: 40, y: 20 } as unknown as never,
+            anchor: new window.naver.maps.Point(40, 20),
           },
         });
       });
